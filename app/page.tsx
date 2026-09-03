@@ -59,6 +59,9 @@ export default function HomePage() {
               <Link href={`/form/${form.id}`} className="text-accent">
                 Open
               </Link>
+              <Link href={`/responses/${form.id}`} className="text-accent">
+                Responses
+              </Link>
             </div>
           </div>
         ))}
