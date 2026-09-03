@@ -51,9 +51,24 @@ export default function ResponsesPage() {
     );
   }
 
+  // Build the question order from the form's own field list.
+  // Any answer whose field no longer exists gets appended at the end.
+  const orderedFieldIds = form.fields.map((f) => f.id);
+
   function labelFor(fieldId: string) {
     const field = form!.fields.find((f) => f.id === fieldId);
     return field ? field.label : "Removed question";
+  }
+
+  function orderedEntries(answers: Record<string, string>) {
+    const entries = Object.entries(answers);
+    return entries.sort((a, b) => {
+      const aIndex = orderedFieldIds.indexOf(a[0]);
+      const bIndex = orderedFieldIds.indexOf(b[0]);
+      const aPos = aIndex === -1 ? Infinity : aIndex;
+      const bPos = bIndex === -1 ? Infinity : bIndex;
+      return aPos - bPos;
+    });
   }
 
   return (
@@ -74,7 +89,7 @@ export default function ResponsesPage() {
               {new Date(response.submitted_at).toLocaleString()}
             </p>
             <div className="space-y-3">
-              {Object.entries(response.answers).map(([fieldId, value]) => (
+              {orderedEntries(response.answers).map(([fieldId, value]) => (
                 <div key={fieldId}>
                   <p className="text-[15px] font-semibold text-ink">
                     {labelFor(fieldId)}
