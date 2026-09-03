@@ -53,7 +53,7 @@ export default function ResponsesPage() {
 
   function labelFor(fieldId: string) {
     const field = form!.fields.find((f) => f.id === fieldId);
-    return field ? field.label : fieldId;
+    return field ? field.label : "Removed question";
   }
 
   return (
@@ -70,14 +70,16 @@ export default function ResponsesPage() {
       <div className="space-y-3">
         {responses.map((response) => (
           <div key={response.id} className="bg-white rounded-xl p-5 shadow-sm">
-            <p className="text-xs text-muted mb-3">
+            <p className="text-xs text-muted mb-4">
               {new Date(response.submitted_at).toLocaleString()}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {Object.entries(response.answers).map(([fieldId, value]) => (
                 <div key={fieldId}>
-                  <p className="text-xs text-muted">{labelFor(fieldId)}</p>
-                  <p className="text-sm">{value || "—"}</p>
+                  <p className="text-[15px] font-semibold text-ink">
+                    {labelFor(fieldId)}
+                  </p>
+                  <p className="text-sm text-muted">{value || "—"}</p>
                 </div>
               ))}
             </div>
