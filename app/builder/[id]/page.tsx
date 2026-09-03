@@ -14,6 +14,8 @@ function newField(): FormField {
   };
 }
 
+const OPTION_TYPES: FieldType[] = ["dropdown", "radio", "multiselect"];
+
 export default function BuilderPage() {
   const router = useRouter();
   const params = useParams();
@@ -140,18 +142,50 @@ export default function BuilderPage() {
                 <option value="text">Short text</option>
                 <option value="textarea">Paragraph</option>
                 <option value="dropdown">Dropdown</option>
-                <option value="checkbox">Checkbox</option>
+                <option value="radio">Multiple choice</option>
+                <option value="multiselect">Checkboxes (multi-select)</option>
+                <option value="checkbox">Single checkbox</option>
+                <option value="date">Date</option>
+                <option value="time">Time</option>
+                <option value="scale">Linear scale</option>
               </select>
             </div>
 
-            {field.type === "dropdown" && (
+            {OPTION_TYPES.includes(field.type) && (
               <input
                 type="text"
-                placeholder="Options, comma separated"
+                placeholder="Options, comma separated (e.g. Red, Blue, Green)"
                 value={(field.options || []).join(", ")}
                 onChange={(e) => updateOptions(index, e.target.value)}
                 className="w-full border-b border-line text-sm py-1 mb-3 outline-none focus:border-accent"
               />
+            )}
+
+            {field.type === "scale" && (
+              <div className="flex gap-3 mb-3 items-center text-sm">
+                <label className="flex items-center gap-1">
+                  Min
+                  <input
+                    type="number"
+                    value={field.scaleMin ?? 1}
+                    onChange={(e) =>
+                      updateField(index, { scaleMin: Number(e.target.value) })
+                    }
+                    className="w-14 border-b border-line py-1 outline-none focus:border-accent"
+                  />
+                </label>
+                <label className="flex items-center gap-1">
+                  Max
+                  <input
+                    type="number"
+                    value={field.scaleMax ?? 5}
+                    onChange={(e) =>
+                      updateField(index, { scaleMax: Number(e.target.value) })
+                    }
+                    className="w-14 border-b border-line py-1 outline-none focus:border-accent"
+                  />
+                </label>
+              </div>
             )}
 
             <div className="flex items-center justify-between">
