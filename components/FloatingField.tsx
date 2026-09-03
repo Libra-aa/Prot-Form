@@ -63,7 +63,7 @@ export default function FloatingField({ field, value, onChange }: Props) {
           onChange={(e) => onChange(e.target.checked ? "true" : "false")}
           className="w-4 h-4"
         />
-        <label htmlFor={fieldId} className="text-[15px] text-ink">
+        <label htmlFor={fieldId} className="text-[15px] font-semibold text-ink">
           {field.label} {field.required && <span className="required">*</span>}
         </label>
       </div>
@@ -73,7 +73,7 @@ export default function FloatingField({ field, value, onChange }: Props) {
   if (field.type === "radio") {
     return (
       <div className="py-3">
-        <p className="text-sm text-muted mb-2">
+        <p className="text-[15px] font-semibold text-ink mb-2">
           {field.label} {field.required && <span className="required">*</span>}
         </p>
         <div className="space-y-2">
@@ -105,7 +105,7 @@ export default function FloatingField({ field, value, onChange }: Props) {
     }
     return (
       <div className="py-3">
-        <p className="text-sm text-muted mb-2">
+        <p className="text-[15px] font-semibold text-ink mb-2">
           {field.label} {field.required && <span className="required">*</span>}
         </p>
         <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function FloatingField({ field, value, onChange }: Props) {
     const nums = Array.from({ length: max - min + 1 }, (_, i) => min + i);
     return (
       <div className="py-3">
-        <p className="text-sm text-muted mb-3">
+        <p className="text-[15px] font-semibold text-ink mb-3">
           {field.label} {field.required && <span className="required">*</span>}
         </p>
         <div className="flex justify-between items-center">
