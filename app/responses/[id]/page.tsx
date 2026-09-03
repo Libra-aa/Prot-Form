@@ -17,6 +17,7 @@ export default function ResponsesPage() {
   const [form, setForm] = useState<FormRecord | null>(null);
   const [responses, setResponses] = useState<ResponseRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -51,8 +52,6 @@ export default function ResponsesPage() {
     );
   }
 
-  // Build the question order from the form's own field list.
-  // Any answer whose field no longer exists gets appended at the end.
   const orderedFieldIds = form.fields.map((f) => f.id);
 
   function labelFor(fieldId: string) {
@@ -71,19 +70,73 @@ export default function ResponsesPage() {
     });
   }
 
+  // Filter: keep a response if ANY answer text contains the search term
+  const filteredResponses = responses.filter((r) => {
+    if (!search.trim()) return true;
+    const haystack = Object.values(r.answers).join(" ").toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
+  function downloadCSV() {
+    const headers = form!.fields.map((f) => f.label);
+    const rows = filteredResponses.map((r) =>
+      form!.fields.map((f) => {
+        const val = r.answers[f.id] ?? "";
+        // Escape quotes and wrap in quotes if it contains a comma
+        const safe = String(val).replace(/"/g, '""');
+        return `"${safe}"`;
+      })
+    );
+
+    const csvContent = [
+      headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${form!.title || "responses"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="max-w-xl mx-auto px-5 py-10">
-      <h1 className="text-2xl font-semibold mb-1">{form.title || "Untitled form"}</h1>
-      <p className="text-muted text-sm mb-6">
-        {responses.length} {responses.length === 1 ? "response" : "responses"}
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl font-semibold">{form.title || "Untitled form"}</h1>
+      </div>
+      <p className="text-muted text-sm mb-4">
+        {filteredResponses.length} of {responses.length}{" "}
+        {responses.length === 1 ? "response" : "responses"}
       </p>
 
-      {responses.length === 0 && (
-        <p className="text-muted text-sm">No responses yet.</p>
+      <div className="flex gap-2 mb-6">
+        <input
+          type="text"
+          placeholder="Search responses..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-white rounded-lg px-3 py-2 text-sm border border-line outline-none focus:border-accent"
+        />
+        <button
+          onClick={downloadCSV}
+          disabled={responses.length === 0}
+          className="bg-accent text-white text-sm px-4 py-2 rounded-lg whitespace-nowrap disabled:opacity-40"
+        >
+          Export
+        </button>
+      </div>
+
+      {filteredResponses.length === 0 && (
+        <p className="text-muted text-sm">
+          {responses.length === 0 ? "No responses yet." : "No matches."}
+        </p>
       )}
 
       <div className="space-y-3">
-        {responses.map((response) => (
+        {filteredResponses.map((response) => (
           <div key={response.id} className="bg-white rounded-xl p-5 shadow-sm">
             <p className="text-xs text-muted mb-4">
               {new Date(response.submitted_at).toLocaleString()}
