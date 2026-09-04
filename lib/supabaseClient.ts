@@ -24,6 +24,7 @@ export interface FormField {
   options?: string[]; // for dropdown, radio, multiselect
   scaleMin?: number; // for scale
   scaleMax?: number; // for scale
+  printOrder?: number; // export column position — blank means "don't export"
 }
 
 export interface FormRecord {
