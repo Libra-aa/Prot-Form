@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { supabase, FormRecord } from "@/lib/supabaseClient";
+import { supabase, FormRecord, FormField } from "@/lib/supabaseClient";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ResponseRecord {
   id: string;
@@ -59,6 +61,21 @@ export default function ResponsesPage() {
     return field ? field.label : "Removed question";
   }
 
+  function fieldFor(fieldId: string): FormField | undefined {
+    return form!.fields.find((f) => f.id === fieldId);
+  }
+
+  // Formats a raw answer for display, turning scale answers into "7/10"
+  function displayValue(fieldId: string, value: string) {
+    const field = fieldFor(fieldId);
+    if (!value) return "—";
+    if (field?.type === "scale") {
+      const max = field.scaleMax ?? 5;
+      return `${value}/${max}`;
+    }
+    return value;
+  }
+
   function orderedEntries(answers: Record<string, string>) {
     const entries = Object.entries(answers);
     return entries.sort((a, b) => {
@@ -70,36 +87,48 @@ export default function ResponsesPage() {
     });
   }
 
-  // Filter: keep a response if ANY answer text contains the search term
   const filteredResponses = responses.filter((r) => {
     if (!search.trim()) return true;
     const haystack = Object.values(r.answers).join(" ").toLowerCase();
     return haystack.includes(search.toLowerCase());
   });
 
-  function downloadCSV() {
-    const headers = form!.fields.map((f) => f.label);
-    const rows = filteredResponses.map((r) =>
-      form!.fields.map((f) => {
-        const val = r.answers[f.id] ?? "";
-        // Escape quotes and wrap in quotes if it contains a comma
-        const safe = String(val).replace(/"/g, '""');
-        return `"${safe}"`;
-      })
+  function downloadPDF() {
+    const printFields = form!.fields
+      .filter((f) => f.printOrder !== undefined && f.printOrder !== null)
+      .sort((a, b) => (a.printOrder as number) - (b.printOrder as number));
+
+    if (printFields.length === 0) {
+      alert("No fields have a Print column number set yet. Open the form builder and set Print numbers on the questions you want in the export.");
+      return;
+    }
+
+    const chronological = [...filteredResponses].sort(
+      (a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime()
     );
 
-    const csvContent = [
-      headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
+    const headers = ["S/N", ...printFields.map((f) => f.label)];
+    const rows = chronological.map((r, i) => [
+      String(i + 1),
+      ...printFields.map((f) => {
+        const raw = r.answers[f.id] ?? "";
+        return displayValue(f.id, raw);
+      }),
+    ]);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${form!.title || "responses"}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const doc = new jsPDF({ orientation: printFields.length > 4 ? "landscape" : "portrait" });
+    doc.setFontSize(14);
+    doc.text(form!.title || "Form responses", 14, 15);
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 22,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [22, 101, 52] },
+    });
+
+    doc.save(`${form!.title || "responses"}.pdf`);
   }
 
   return (
@@ -121,11 +150,11 @@ export default function ResponsesPage() {
           className="flex-1 bg-white rounded-lg px-3 py-2 text-sm border border-line outline-none focus:border-accent"
         />
         <button
-          onClick={downloadCSV}
+          onClick={downloadPDF}
           disabled={responses.length === 0}
           className="bg-accent text-white text-sm px-4 py-2 rounded-lg whitespace-nowrap disabled:opacity-40"
         >
-          Export
+          Export PDF
         </button>
       </div>
 
@@ -144,10 +173,10 @@ export default function ResponsesPage() {
             <div className="space-y-3">
               {orderedEntries(response.answers).map(([fieldId, value]) => (
                 <div key={fieldId}>
-                  <p className="text-[15px] font-semibold text-ink">
-                    {labelFor(fieldId)}
+                  <p className="text-base text-ink">{labelFor(fieldId)}</p>
+                  <p className="text-[15px] font-bold text-ink">
+                    {displayValue(fieldId, value)}
                   </p>
-                  <p className="text-sm text-muted">{value || "—"}</p>
                 </div>
               ))}
             </div>
