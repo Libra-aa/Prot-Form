@@ -6,9 +6,10 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
@@ -25,30 +26,53 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setConfirmMsg("Account created. You can now log in.");
+        setConfirmMsg("Account created. Check your email to confirm, then log in.");
         setMode("login");
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return;
+    }
+
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
       setLoading(false);
       if (error) {
         setError(error.message);
       } else {
-        router.push("/");
-        router.refresh();
+        setConfirmMsg("Password reset link sent. Check your email.");
+        setMode("login");
       }
+      return;
     }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/");
+      router.refresh();
+    }
+  }
+
+  function switchMode(next: "login" | "signup" | "forgot") {
+    setMode(next);
+    setError(null);
+    setConfirmMsg(null);
   }
 
   return (
     <main className="max-w-sm mx-auto px-5 py-16">
       <h1 className="text-2xl font-semibold mb-1">
-        {mode === "login" ? "Log in" : "Create account"}
+        {mode === "login" && "Log in"}
+        {mode === "signup" && "Create account"}
+        {mode === "forgot" && "Reset password"}
       </h1>
       <p className="text-muted text-sm mb-6">
-        {mode === "login"
-          ? "Access your saved forms and responses."
-          : "Create an account to save and manage your forms."}
+        {mode === "login" && "Access your saved forms and responses."}
+        {mode === "signup" && "Create an account to save and manage your forms."}
+        {mode === "forgot" && "Enter your email and we'll send you a reset link."}
       </p>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 shadow-sm space-y-4">
@@ -62,17 +86,39 @@ export default function LoginPage() {
           />
           <label>Email</label>
         </div>
-        <div className="field">
-          <input
-            type="password"
-            placeholder=" "
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <label>Password</label>
-        </div>
+
+        {mode !== "forgot" && (
+          <div className="field relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder=" "
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pr-10"
+            />
+            <label>Password</label>
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted text-sm"
+              tabIndex={-1}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        )}
+
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => switchMode("forgot")}
+            className="text-sm text-accent"
+          >
+            Forgot password?
+          </button>
+        )}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
         {confirmMsg && <p className="text-sm text-green-700">{confirmMsg}</p>}
@@ -82,22 +128,33 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full bg-accent text-white rounded-xl py-3 font-medium"
         >
-          {loading ? "Please wait…" : mode === "login" ? "Log in" : "Sign up"}
+          {loading
+            ? "Please wait…"
+            : mode === "login"
+            ? "Log in"
+            : mode === "signup"
+            ? "Sign up"
+            : "Send reset link"}
         </button>
       </form>
 
       <button
-        onClick={() => {
-          setMode(mode === "login" ? "signup" : "login");
-          setError(null);
-          setConfirmMsg(null);
-        }}
+        onClick={() => switchMode(mode === "signup" ? "login" : "signup")}
         className="w-full text-center text-sm text-accent mt-4"
       >
-        {mode === "login"
-          ? "Don't have an account? Sign up"
-          : "Already have an account? Log in"}
+        {mode === "signup"
+          ? "Already have an account? Log in"
+          : "Don't have an account? Sign up"}
       </button>
+
+      {mode === "forgot" && (
+        <button
+          onClick={() => switchMode("login")}
+          className="w-full text-center text-sm text-muted mt-2"
+        >
+          Back to log in
+        </button>
+      )}
     </main>
   );
 }
