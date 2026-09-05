@@ -11,6 +11,7 @@ function newField(): FormField {
     type: "text",
     required: false,
     options: [],
+    printOrder: undefined,
   };
 }
 
@@ -65,6 +66,13 @@ export default function BuilderPage() {
       .map((s) => s.trim())
       .filter(Boolean);
     updateField(index, { options });
+  }
+
+  function updatePrintOrder(index: number, raw: string) {
+    const value = raw.trim() === "" ? undefined : Number(raw);
+    updateField(index, {
+      printOrder: value === undefined || Number.isNaN(value) ? undefined : value,
+    });
   }
 
   async function saveForm() {
@@ -123,73 +131,73 @@ export default function BuilderPage() {
 
       <div className="space-y-3">
         {fields.map((field, index) => (
-          <div key={field.id} className="bg-white rounded-xl p-5 shadow-sm">
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                placeholder="Field label (e.g. Full Name)"
-                value={field.label}
-                onChange={(e) => updateField(index, { label: e.target.value })}
-                className="flex-1 border-b border-line text-[15px] py-1 outline-none focus:border-accent"
-              />
-              <select
-                value={field.type}
-                onChange={(e) =>
-                  updateField(index, { type: e.target.value as FieldType })
-                }
-                className="border-b border-line text-[15px] py-1 outline-none bg-transparent"
-              >
-                <option value="text">Short text</option>
-                <option value="textarea">Paragraph</option>
-                <option value="dropdown">Dropdown</option>
-                <option value="radio">Multiple choice</option>
-                <option value="multiselect">Checkboxes (multi-select)</option>
-                <option value="checkbox">Single checkbox</option>
-                <option value="date">Date</option>
-                <option value="time">Time</option>
-                <option value="scale">Linear scale</option>
-              </select>
-            </div>
-
-            {OPTION_TYPES.includes(field.type) && (
-              <input
-                type="text"
-                placeholder="Options, comma separated (e.g. Red, Blue, Green)"
-                value={(field.options || []).join(", ")}
-                onChange={(e) => updateOptions(index, e.target.value)}
-                className="w-full border-b border-line text-sm py-1 mb-3 outline-none focus:border-accent"
-              />
-            )}
-
-            {field.type === "scale" && (
-              <div className="flex gap-3 mb-3 items-center text-sm">
-                <label className="flex items-center gap-1">
-                  Min
-                  <input
-                    type="number"
-                    value={field.scaleMin ?? 1}
-                    onChange={(e) =>
-                      updateField(index, { scaleMin: Number(e.target.value) })
-                    }
-                    className="w-14 border-b border-line py-1 outline-none focus:border-accent"
-                  />
-                </label>
-                <label className="flex items-center gap-1">
-                  Max
-                  <input
-                    type="number"
-                    value={field.scaleMax ?? 5}
-                    onChange={(e) =>
-                      updateField(index, { scaleMax: Number(e.target.value) })
-                    }
-                    className="w-14 border-b border-line py-1 outline-none focus:border-accent"
-                  />
-                </label>
+          <div key={field.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5">
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="Field label (e.g. Full Name)"
+                  value={field.label}
+                  onChange={(e) => updateField(index, { label: e.target.value })}
+                  className="flex-1 border-b border-line text-[15px] py-1 outline-none focus:border-accent"
+                />
+                <select
+                  value={field.type}
+                  onChange={(e) =>
+                    updateField(index, { type: e.target.value as FieldType })
+                  }
+                  className="border-b border-line text-[15px] py-1 outline-none bg-transparent"
+                >
+                  <option value="text">Short text</option>
+                  <option value="textarea">Paragraph</option>
+                  <option value="dropdown">Dropdown</option>
+                  <option value="radio">Multiple choice</option>
+                  <option value="multiselect">Checkboxes (multi-select)</option>
+                  <option value="checkbox">Single checkbox</option>
+                  <option value="date">Date</option>
+                  <option value="time">Time</option>
+                  <option value="scale">Linear scale</option>
+                </select>
               </div>
-            )}
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-muted">
+              {OPTION_TYPES.includes(field.type) && (
+                <input
+                  type="text"
+                  placeholder="Options, comma separated (e.g. Red, Blue, Green)"
+                  value={(field.options || []).join(", ")}
+                  onChange={(e) => updateOptions(index, e.target.value)}
+                  className="w-full border-b border-line text-sm py-1 mb-1 outline-none focus:border-accent"
+                />
+              )}
+
+              {field.type === "scale" && (
+                <div className="flex gap-3 mb-1 items-center text-sm">
+                  <label className="flex items-center gap-1">
+                    Min
+                    <input
+                      type="number"
+                      value={field.scaleMin ?? 1}
+                      onChange={(e) =>
+                        updateField(index, { scaleMin: Number(e.target.value) })
+                      }
+                      className="w-14 border-b border-line py-1 outline-none focus:border-accent"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1">
+                    Max
+                    <input
+                      type="number"
+                      value={field.scaleMax ?? 5}
+                      onChange={(e) =>
+                        updateField(index, { scaleMax: Number(e.target.value) })
+                      }
+                      className="w-14 border-b border-line py-1 outline-none focus:border-accent"
+                    />
+                  </label>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 text-sm text-muted mt-2">
                 <input
                   type="checkbox"
                   checked={field.required}
@@ -199,6 +207,20 @@ export default function BuilderPage() {
                 />
                 Required
               </label>
+            </div>
+
+            <div className="flex items-center justify-between bg-gray-50 px-5 py-3 border-t border-line">
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <span>Print</span>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Col #"
+                  value={field.printOrder ?? ""}
+                  onChange={(e) => updatePrintOrder(index, e.target.value)}
+                  className="w-16 border border-line rounded-md px-2 py-1 text-sm outline-none focus:border-accent bg-white"
+                />
+              </div>
               <button
                 onClick={() => removeField(index)}
                 className="text-sm text-red-500"
@@ -214,7 +236,7 @@ export default function BuilderPage() {
         onClick={addField}
         className="w-full mt-4 border border-dashed border-line rounded-xl py-3 text-sm text-muted"
       >
-        + Add field
+        + Add sector / field
       </button>
 
       <button
@@ -222,7 +244,7 @@ export default function BuilderPage() {
         disabled={saving}
         className="w-full mt-6 bg-accent text-white rounded-xl py-3 font-medium"
       >
-        {saving ? "Saving…" : "Save form"}
+        {saving ? "Saving…" : isNew ? "Create form" : "Update form"}
       </button>
 
       {shareUrl && (
