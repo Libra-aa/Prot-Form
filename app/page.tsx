@@ -6,6 +6,66 @@ import { useRouter } from "next/navigation";
 import { supabase, FormRecord } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 
+function LandingPage() {
+  return (
+    <main className="min-h-screen bg-[#0a0e27] text-white">
+      <div className="max-w-xl mx-auto px-5">
+        <div className="flex items-center justify-between py-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center font-bold text-sm">
+              M
+            </div>
+            <div className="leading-tight">
+              <p className="font-bold text-sm">Melki</p>
+              <p className="text-[10px] text-green-400 -mt-1">Online Form</p>
+            </div>
+          </div>
+          <span className="text-sm border-b-2 border-green-400 pb-1">Home</span>
+        </div>
+
+        <div className="pt-12 pb-16">
+          <span className="inline-block text-xs border border-white/30 rounded-full px-3 py-1 mb-6 text-white/80">
+            Welcome to Melki Online Form
+          </span>
+
+          <h1 className="text-4xl font-extrabold leading-tight mb-6">
+            <span className="text-white">Simplify.</span>
+            <br />
+            <span className="text-green-400">Collect.</span>
+            <br />
+            <span className="text-blue-400">Succeed.</span>
+          </h1>
+
+          <p className="text-white/70 text-sm mb-8">
+            Create professional forms, collect well-organized responses, and
+            manage your data efficiently — all in one platform.
+          </p>
+
+          <div className="flex gap-3 mb-8">
+            <Link
+              href="/login"
+              className="flex-1 bg-green-500 text-white text-sm font-medium px-4 py-3 rounded-lg text-center"
+            >
+              Log in →
+            </Link>
+            <Link
+              href="/login?mode=signup"
+              className="flex-1 border border-white/30 text-white text-sm font-medium px-4 py-3 rounded-lg text-center"
+            >
+              Sign up
+            </Link>
+          </div>
+
+          <p className="text-xs text-white/50 flex items-center gap-1">
+            <span className="text-green-400">✓</span> Secure. Reliable. Easy
+            to use.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -69,6 +129,14 @@ export default function HomePage() {
     }
   }
 
+  if (loading) {
+    return <main className="max-w-xl mx-auto px-5 py-10 text-muted">Loading…</main>;
+  }
+
+  if (!user) {
+    return <LandingPage />;
+  }
+
   return (
     <main className="max-w-xl mx-auto px-5 py-10">
       <div className="relative bg-green-700 rounded-2xl p-6 mb-6 overflow-hidden">
@@ -85,34 +153,16 @@ export default function HomePage() {
           >
             + Create form
           </Link>
-          {user ? (
-            <button
-              onClick={handleLogout}
-              className="inline-block bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-medium"
-            >
-              Log out
-            </button>
-          ) : (
-            <Link
-              href="/login"
-              className="inline-block bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-medium"
-            >
-              Log in
-            </Link>
-          )}
+          <button
+            onClick={handleLogout}
+            className="inline-block bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-medium"
+          >
+            Log out
+          </button>
         </div>
       </div>
 
-      {loading && <p className="text-muted text-sm">Loading…</p>}
-
-      {!loading && !user && (
-        <p className="text-muted text-sm">
-          Log in to see and manage the forms you've created. Anyone can still
-          fill out a form using its share link without logging in.
-        </p>
-      )}
-
-      {!loading && user && forms.length === 0 && (
+      {forms.length === 0 && (
         <p className="text-muted text-sm">
           No forms yet. Tap "+ Create form" to make your first one.
         </p>
