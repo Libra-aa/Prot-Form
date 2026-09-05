@@ -146,3 +146,64 @@ export default function FloatingField({ field, value, onChange }: Props) {
   if (field.type === "time") {
     return (
       <div className="field">
+        <input
+          type="time"
+          id={fieldId}
+          placeholder=" "
+          required={field.required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <label htmlFor={fieldId}>
+          {field.label} {field.required && <span className="required">*</span>}
+        </label>
+      </div>
+    );
+  }
+
+  if (field.type === "scale") {
+    const min = field.scaleMin ?? 1;
+    const max = field.scaleMax ?? 5;
+    const nums = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+    return (
+      <div className="py-3">
+        <p className="text-[15px] font-semibold text-ink mb-2">
+          {field.label} {field.required && <span className="required">*</span>}
+        </p>
+        <div className={`field ${value ? "has-value" : ""}`}>
+          <select
+            id={fieldId}
+            required={field.required}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            <option value="">Select Rating</option>
+            {nums.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <span className="arrow">▾</span>
+        </div>
+      </div>
+    );
+  }
+
+  // default: text
+  return (
+    <div className="field">
+      <input
+        type="text"
+        id={fieldId}
+        placeholder=" "
+        required={field.required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <label htmlFor={fieldId}>
+        {field.label} {field.required && <span className="required">*</span>}
+      </label>
+    </div>
+  );
+}
