@@ -12,6 +12,19 @@ interface ResponseRecord {
   submitted_at: string;
 }
 
+interface StatBar {
+  label: string;
+  count: number;
+}
+
+const STAT_TYPES: FormField["type"][] = [
+  "dropdown",
+  "radio",
+  "multiselect",
+  "checkbox",
+  "scale",
+];
+
 export default function ResponsesPage() {
   const params = useParams();
   const id = params.id as string;
@@ -20,6 +33,7 @@ export default function ResponsesPage() {
   const [responses, setResponses] = useState<ResponseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -65,7 +79,6 @@ export default function ResponsesPage() {
     return form!.fields.find((f) => f.id === fieldId);
   }
 
-  // Formats a raw answer for display, turning scale answers into "7/10"
   function displayValue(fieldId: string, value: string) {
     const field = fieldFor(fieldId);
     if (!value) return "—";
@@ -92,6 +105,36 @@ export default function ResponsesPage() {
     const haystack = Object.values(r.answers).join(" ").toLowerCase();
     return haystack.includes(search.toLowerCase());
   });
+
+  function computeStats(field: FormField): StatBar[] {
+    const counts: Record<string, number> = {};
+
+    function bump(key: string) {
+      counts[key] = (counts[key] || 0) + 1;
+    }
+
+    for (const r of filteredResponses) {
+      const raw = r.answers[field.id];
+      if (!raw) continue;
+
+      if (field.type === "multiselect") {
+        raw.split(",").forEach((opt) => opt && bump(opt));
+      } else if (field.type === "checkbox") {
+        bump(raw === "true" ? "Checked" : "Unchecked");
+      } else if (field.type === "scale") {
+        const max = field.scaleMax ?? 5;
+        bump(`${raw}/${max}`);
+      } else {
+        bump(raw);
+      }
+    }
+
+    return Object.entries(counts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  const statFields = form.fields.filter((f) => STAT_TYPES.includes(f.type));
 
   function downloadPDF() {
     const printFields = form!.fields
@@ -141,14 +184,21 @@ export default function ResponsesPage() {
         {responses.length === 1 ? "response" : "responses"}
       </p>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
-          placeholder="Search responses..."
+          placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-white rounded-lg px-3 py-2 text-sm border border-line outline-none focus:border-accent"
+          className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 text-sm border border-line outline-none focus:border-accent"
         />
+        <button
+          onClick={() => setShowStats((s) => !s)}
+          disabled={responses.length === 0}
+          className="bg-gray-700 text-white text-sm px-4 py-2 rounded-lg whitespace-nowrap disabled:opacity-40"
+        >
+          {showStats ? "Hide Stats" : "Stats"}
+        </button>
         <button
           onClick={downloadPDF}
           disabled={responses.length === 0}
@@ -157,6 +207,50 @@ export default function ResponsesPage() {
           Export PDF
         </button>
       </div>
+
+      {showStats && (
+        <div className="bg-white rounded-xl p-5 shadow-sm mb-6 space-y-6">
+          <p className="text-sm font-semibold text-ink">Response statistics</p>
+          {statFields.length === 0 && (
+            <p className="text-sm text-muted">
+              No multiple-choice, dropdown, checkbox, or scale questions to chart yet.
+            </p>
+          )}
+          {statFields.map((field) => {
+            const bars = computeStats(field);
+            const total = bars.reduce((sum, b) => sum + b.count, 0);
+            return (
+              <div key={field.id}>
+                <p className="text-sm text-ink mb-2">{field.label}</p>
+                {bars.length === 0 && (
+                  <p className="text-xs text-muted">No answers yet.</p>
+                )}
+                <div className="space-y-2">
+                  {bars.map((bar) => {
+                    const pct = total > 0 ? Math.round((bar.count / total) * 100) : 0;
+                    return (
+                      <div key={bar.label}>
+                        <div className="flex justify-between text-xs text-muted mb-1">
+                          <span>{bar.label}</span>
+                          <span>
+                            {bar.count} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className="bg-accent h-2 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {filteredResponses.length === 0 && (
         <p className="text-muted text-sm">
