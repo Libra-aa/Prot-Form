@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase, FormField, FieldType } from "@/lib/supabaseClient";
+import type { User } from "@supabase/supabase-js";
 
 function newField(): FormField {
   return {
@@ -23,6 +24,8 @@ export default function BuilderPage() {
   const id = params.id as string;
   const isNew = id === "new";
 
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [fields, setFields] = useState<FormField[]>([newField()]);
@@ -30,7 +33,19 @@ export default function BuilderPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isNew) return;
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      setCheckingAuth(false);
+      if (!data.user) {
+        router.push("/login");
+      }
+    }
+    checkAuth();
+  }, [router]);
+
+  useEffect(() => {
+    if (isNew || !user) return;
     async function load() {
       const { data } = await supabase
         .from("forms")
@@ -44,7 +59,7 @@ export default function BuilderPage() {
       }
     }
     load();
-  }, [id, isNew]);
+  }, [id, isNew, user]);
 
   function updateField(index: number, patch: Partial<FormField>) {
     setFields((prev) =>
@@ -76,13 +91,17 @@ export default function BuilderPage() {
   }
 
   async function saveForm() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     setSaving(true);
     const payload = { title, description, fields };
 
     if (isNew) {
       const { data, error } = await supabase
         .from("forms")
-        .insert(payload)
+        .insert({ ...payload, user_id: user.id })
         .select()
         .single();
       setSaving(false);
@@ -100,6 +119,14 @@ export default function BuilderPage() {
         setShareUrl(`${window.location.origin}/form/${id}`);
       }
     }
+  }
+
+  if (checkingAuth) {
+    return <main className="max-w-xl mx-auto px-5 py-10 text-muted">Checking login…</main>;
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
